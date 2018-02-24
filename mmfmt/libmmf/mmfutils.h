@@ -91,7 +91,7 @@ typedef enum {
 typedef struct _mmf_buf {
     uint8_t     *base;
     size_t      size;
-    size_t      pos;
+    int64_t     pos;
 } mmf_buf_t;
     
 void    mmf_buf_reset(mmf_buf_t *pbuf);
@@ -109,15 +109,15 @@ void    mmf_buf_freep(mmf_buf_t **ppbuf);
 
 
 typedef mmf_buf_t mmf_data_t;
-int     mmf_buf_data_enlarge(mmf_data_t *pbuf, size_t data_pos,
+int     mmf_buf_data_enlarge(mmf_data_t *pbuf, int64_t data_pos,
                              size_t data_size);
 int     mmf_buf_data_ref(mmf_data_t *pdata, mmf_buf_t *pbuf,
-                         size_t data_pos, size_t data_size);
+                         int64_t data_pos, size_t data_size);
 int     mmf_buf_data_ref_all(mmf_data_t *pdata, mmf_buf_t *pbuf);
 mmf_data_t  mmf_buf_2_data(mmf_buf_t *pbuf);
-size_t  mmf_buf_data_pos (mmf_data_t *pdata);
-size_t  mmf_buf_data_left(mmf_data_t *pdata);
-size_t  mmf_buf_data_skip(mmf_data_t *pdata, size_t n);
+int64_t mmf_buf_data_pos (mmf_data_t *pdata);
+int64_t mmf_buf_data_left(mmf_data_t *pdata);
+int64_t mmf_buf_data_skip(mmf_data_t *pdata, size_t n);
 
 
 

@@ -228,7 +228,7 @@ void mmf_buf_freep(mmf_buf_t **ppbuf)
     *ppbuf = 0;
 }
 
-int mmf_buf_data_enlarge(mmf_buf_t *pbuf, size_t data_pos, size_t data_size)
+int mmf_buf_data_enlarge(mmf_buf_t *pbuf, int64_t data_pos, size_t data_size)
 {
     if (data_pos > pbuf->size) {
         MMF_PERRSTR_EXIT(MMF_ERR_OUT_OF_RANGE);
@@ -238,7 +238,7 @@ int mmf_buf_data_enlarge(mmf_buf_t *pbuf, size_t data_pos, size_t data_size)
 }
 
 int mmf_buf_data_ref(mmf_data_t *pdata, mmf_buf_t *pbuf,
-                     size_t data_pos, size_t data_size)
+                     int64_t data_pos, size_t data_size)
 {
     if (data_pos > pbuf->size) {
         MMF_PERRSTR_EXIT(MMF_ERR_OUT_OF_RANGE);
@@ -269,17 +269,17 @@ mmf_data_t mmf_buf_2_data(mmf_buf_t *pbuf)
     return data;
 }
 
-size_t mmf_buf_data_pos(mmf_data_t *pdata)
+int64_t mmf_buf_data_pos(mmf_data_t *pdata)
 {
     return pdata->pos;
 }
 
-size_t mmf_buf_data_left(mmf_data_t *pdata)
+int64_t mmf_buf_data_left(mmf_data_t *pdata)
 {
     return pdata->size - pdata->pos;
 }
 
-size_t mmf_buf_data_skip(mmf_data_t *pdata, size_t n)
+int64_t mmf_buf_data_skip(mmf_data_t *pdata, size_t n)
 {
     return (pdata->pos += n);
 }

@@ -26,7 +26,7 @@
 
 
 static int      mmf_flv_parse_avc_nalu(mmf_flv_ctx_t *pflv, mmf_data_t *pdata);
-static int64_t  mmf_flv_data_pos_2_file_pos(mmf_flv_ctx_t *pflv, int pos);
+static int64_t  mmf_flv_data_pos_2_file_pos(mmf_flv_ctx_t *pflv, int64_t pos);
 
 
 static const char *mmf_flv_itoa(int val)
@@ -114,7 +114,7 @@ const char *mmf_itoa_avc_pkt_type(int val) {
 
 void mmf_flv_print_tag_header(mmf_flv_tag_t *ptag)
 {
-    mmf_printf("tag#%d: <%s>, pos=0x%08"PRIX64", size=0x%08X, pts=%"PRId64"\n",
+    mmf_printf("tag#%d: <%s>, pos=0x%08"PRIx64", size=0x%08X, pts=%"PRId64"\n",
                ptag->i_tag_idx, mmf_itoa_tag_type(ptag->i_tag_type),
                ptag->i_tag_pos, ptag->i_tag_size,
                ptag->i_tag_pts);
@@ -287,7 +287,7 @@ int mmf_flv_parse_avc_nalu(mmf_flv_ctx_t *pflv, mmf_data_t *pdata)
     uint32_t i_nalu_size = mmf_buf_getbe32(pdata);
 
     if (i_nalu_size > mmf_buf_data_left(pdata)) {
-        mmf_perror("\t @0x%08"PRIx64": nalu_size=0x%08x exceed data_size=0x%08lx\n",
+        mmf_perror("\t @0x%08"PRIx64": nalu_size=0x%08x exceed data_size=0x%08"PRIx64"\n",
                    pos, i_nalu_size, mmf_buf_data_left(pdata));
         return MMF_ERR_OUT_OF_RANGE;
     }
@@ -305,9 +305,9 @@ int mmf_flv_parse_avc_nalu(mmf_flv_ctx_t *pflv, mmf_data_t *pdata)
     
     mmf_buf_data_skip(pdata, i_nalu_size);
     if (mmf_buf_data_left(pdata) != 0) {
-        mmf_perror("error packed multi-nalu AVC tag");
+        mmf_perror("\t error packed multi-nalu AVC tag");
         pos = mmf_flv_data_pos_2_file_pos(pflv, mmf_buf_data_pos(pdata));
-        mmf_perror("\t @0x%08"PRIx64": 0x%lX byte data still left \n",
+        mmf_perror("\t @0x%08"PRIx64": 0x%"PRIx64" byte data still left \n",
                    pos, mmf_buf_data_left(pdata));
         if (mmf_buf_data_left(pdata) > 4) {
             mmf_perror("\t\t next 4-byte is 0x%08X\n", mmf_buf_showbe32(pdata));
@@ -396,7 +396,7 @@ int mmf_flv_read_tag_header(mmf_flv_ctx_t *pflv)
     return 0;
 }
 
-int64_t mmf_flv_data_pos_2_file_pos(mmf_flv_ctx_t *pflv, int pos)
+int64_t mmf_flv_data_pos_2_file_pos(mmf_flv_ctx_t *pflv, int64_t pos)
 {
     mmf_flv_tag_t *ptag = &pflv->tag;
     return ptag->i_tag_pos + MMF_FLV_TAG_HEADER_SIZE + pos;
