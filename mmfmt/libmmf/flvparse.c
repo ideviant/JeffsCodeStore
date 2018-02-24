@@ -24,6 +24,11 @@
 #include "mmfutils.h"
 #include "flvparse.h"
 
+
+static int      mmf_flv_parse_avc_nalu(mmf_flv_ctx_t *pflv, mmf_data_t *pdata);
+static int64_t  mmf_flv_data_pos_2_file_pos(mmf_flv_ctx_t *pflv, int pos);
+
+
 static const char *mmf_flv_itoa(int val)
 {
     static char sbuf[64] = { 0 };
@@ -141,26 +146,26 @@ void mmf_flv_print_vid_tag_header(mmf_vid_tag_t *pvid)
     }
 }
 
-int mmf_flv_parse_file_header(mmf_buf_t     *pbuf,
+int mmf_flv_parse_file_header(mmf_buf_t     *pdata,
                               mmf_flv_ctx_t *pflv)
 {
-    if (pbuf->size < MMF_FLV_FILE_HEADER_SIZE) {
+    if (mmf_buf_data_left(pdata) < MMF_FLV_FILE_HEADER_SIZE) {
         mmf_perror("not enough space for flv header\n");
         return MMF_ERR_NOT_ENOUGH_DATA;
     }
     
-    uint32_t flv4cc = mmf_buf_getbe32(pbuf);
+    uint32_t flv4cc = mmf_buf_getbe32(pdata);
     if (flv4cc != 'FLV\1') {
         mmf_perror("head 4cc [%08"PRIX32"] is not 'FLV1':[%08"PRIX32"]\n",
                 flv4cc, 'FLV\1');
         return MMF_RET_ERR;
     }
 
-    uint32_t flags = mmf_buf_getbe8(pbuf);
+    uint32_t flags = mmf_buf_getbe8(pdata);
     pflv->b_audio = flags & 4;
     pflv->b_video = flags & 1;
 
-    uint32_t offset = mmf_buf_getbe32(pbuf);
+    uint32_t offset = mmf_buf_getbe32(pdata);
     if (offset != 9) {
         mmf_perror("body offset <%"PRId32"> is not <9>", offset);
         return MMF_RET_ERR;
@@ -169,43 +174,42 @@ int mmf_flv_parse_file_header(mmf_buf_t     *pbuf,
     return 0;
 }
 
-int mmf_flv_parse_tag_header(mmf_buf_t     *pbuf,
-                             mmf_flv_tag_t *ptag)
+int mmf_flv_parse_tag_header(mmf_buf_t *pdata, mmf_flv_tag_t *ptag)
 {
-    if (pbuf->size < MMF_FLV_TAG_HEADER_SIZE) {
+    if (mmf_buf_data_left(pdata) < MMF_FLV_TAG_HEADER_SIZE) {
         mmf_perror("not enough data for tag header\n");
         return MMF_ERR_NOT_ENOUGH_DATA;
     }
     
-    ptag->i_tag_type    = mmf_buf_getbe8 (pbuf) & 0x1f;
-    ptag->i_data_size   = mmf_buf_getbe24(pbuf);
+    ptag->i_tag_type    = mmf_buf_getbe8 (pdata) & 0x1f;
+    ptag->i_data_size   = mmf_buf_getbe24(pdata);
     
-    uint32_t i_ts_lsb24 = mmf_buf_getbe24(pbuf);
-    uint32_t i_ts_msb8  = mmf_buf_getbe8 (pbuf);
+    uint32_t i_ts_lsb24 = mmf_buf_getbe24(pdata);
+    uint32_t i_ts_msb8  = mmf_buf_getbe8 (pdata);
     ptag->i_time_stamp  = (i_ts_msb8 << 24) + i_ts_lsb24;
     
-    ptag->i_stream_id   = mmf_buf_getbe24(pbuf);
+    ptag->i_stream_id   = mmf_buf_getbe24(pdata);
     
     return 0;
 }
 
-int mmf_flv_parse_aud_tag_data(mmf_flv_ctx_t *pflv, mmf_buf_t *pbuf)
+int mmf_flv_parse_aud_tag_data(mmf_flv_ctx_t *pflv, mmf_data_t *pdata)
 {
     mmf_aud_tag_t _aud, *paud = &_aud;
     
-    if (pbuf->size < 2) {
-        mmf_perror("not enough space for AAC tag data header\n");
+    if (mmf_buf_data_left(pdata) < 2) {
+        mmf_perror("not enough data for AAC tag data header\n");
         return MMF_ERR_NOT_ENOUGH_DATA;
     }
     
-    uint32_t val0    = mmf_buf_getbe8 (pbuf);
+    uint32_t val0    = mmf_buf_getbe8 (pdata);
     paud->i_codec_id = (val0 >> 4) & 0xf;
     paud->i_rate     = (val0 >> 2) & 3;
     paud->i_bits     = (val0 >> 1) & 1;
     paud->b_stereo   = (val0 >> 0) & 1;
     
     if (paud->i_codec_id == MMF_FLV_AUD_FMT_AAC) {
-        paud->i_pkt_type = mmf_buf_getbe8(pbuf);
+        paud->i_pkt_type = mmf_buf_getbe8(pdata);
     }
     
     mmf_flv_print_aud_tag_header(paud);
@@ -213,48 +217,56 @@ int mmf_flv_parse_aud_tag_data(mmf_flv_ctx_t *pflv, mmf_buf_t *pbuf)
     return 0;
 }
 
-int mmf_flv_parse_vid_tag_data(mmf_flv_ctx_t *pflv, mmf_buf_t *pbuf)
+int mmf_flv_parse_vid_tag_data(mmf_flv_ctx_t *pflv, mmf_data_t *pdata)
 {
     mmf_vid_tag_t _vid, *pvid = &_vid;
     
-    if (pbuf->size < 5) {
-        mmf_perror("not enough space for AVC tag data header\n");
+    if (mmf_buf_data_left(pdata) < 5) {
+        mmf_perror("not enough data for AVC tag data header\n");
         return MMF_ERR_NOT_ENOUGH_DATA;
     }
     
-    uint32_t val0       = mmf_buf_getbe8 (pbuf);
+    uint32_t val0       = mmf_buf_getbe8 (pdata);
     pvid->i_frame_type  = (val0 >> 4) & 0xf;
     pvid->i_codec_id    = (val0 >> 0) & 0xf;
     
     if (pvid->i_codec_id == MMF_FLV_VID_CODEC_AVC) {
-        pvid->i_pkt_type    = mmf_buf_getbe8 (pbuf);
-        pvid->i_pts_offset  = mmf_buf_getbe24(pbuf);
+        pvid->i_pkt_type    = mmf_buf_getbe8 (pdata);
+        pvid->i_pts_offset  = mmf_buf_getbe24(pdata);
     }
     
     mmf_flv_print_vid_tag_header(pvid);
     
+    if (pvid->i_codec_id == MMF_FLV_VID_CODEC_AVC) {
+        if (pvid->i_pkt_type == MMF_FLV_AVC_PKT_SEQ) {
+            //mmf_flv_parse_avc_cfg(pflv, pbuf);
+        } else if (pvid->i_pkt_type == MMF_FLV_AVC_PKT_NALU) {
+            mmf_flv_parse_avc_nalu(pflv, pdata);
+        }
+    }
+
     return 0;
 }
 
-int mmf_flv_parse_amf_tag_data(mmf_flv_ctx_t *pflv, mmf_buf_t *pbuf)
+int mmf_flv_parse_amf_tag_data(mmf_flv_ctx_t *pflv, mmf_data_t *pdata)
 {
     return 0;
 }
 
-int mmf_flv_parse_tag_data(mmf_flv_ctx_t *pflv, mmf_buf_t *pbuf)
+int mmf_flv_parse_tag_data(mmf_flv_ctx_t *pflv, mmf_data_t *pdata)
 {
     int ret = MMF_RET_OK;
     mmf_flv_tag_t *ptag = &pflv->tag;
     
     switch (ptag->i_tag_type) {
         case MMF_FLV_TAG_TYPE_AUDIO:
-            ret = mmf_flv_parse_aud_tag_data(pflv, pbuf);
+            ret = mmf_flv_parse_aud_tag_data(pflv, pdata);
             break;
         case MMF_FLV_TAG_TYPE_VIDEO:
-            ret = mmf_flv_parse_vid_tag_data(pflv, pbuf);
+            ret = mmf_flv_parse_vid_tag_data(pflv, pdata);
             break;
         case MMF_FLV_TAG_TYPE_SCRIPT:
-            ret = mmf_flv_parse_amf_tag_data(pflv, pbuf);
+            ret = mmf_flv_parse_amf_tag_data(pflv, pdata);
             break;
         default:
             MMF_PERRSTR_EXIT(MMF_ERR_UNSUPPORT);
@@ -262,6 +274,48 @@ int mmf_flv_parse_tag_data(mmf_flv_ctx_t *pflv, mmf_buf_t *pbuf)
     }
     
     return ret;
+}
+
+int mmf_flv_parse_avc_nalu(mmf_flv_ctx_t *pflv, mmf_data_t *pdata)
+{
+    if (mmf_buf_data_left(pdata) < 5) {
+        mmf_perror("sizeof(AVC DATA) < 5\n");
+        return MMF_ERR_NOT_ENOUGH_DATA;
+    }
+
+    int64_t pos = mmf_flv_data_pos_2_file_pos(pflv, mmf_buf_data_pos(pdata));
+    uint32_t i_nalu_size = mmf_buf_getbe32(pdata);
+
+    if (i_nalu_size > mmf_buf_data_left(pdata)) {
+        mmf_perror("\t @0x%08"PRIx64": nalu_size=0x%08x exceed data_size=0x%08lx\n",
+                   pos, i_nalu_size, mmf_buf_data_left(pdata));
+        return MMF_ERR_OUT_OF_RANGE;
+    }
+
+    if (mmf_buf_data_left(pdata) < 1) {
+        mmf_perror("nalu_size < 4\n");
+        return MMF_ERR_NOT_ENOUGH_DATA;
+    }
+
+    uint32_t val0 = mmf_buf_showbe8(pdata);
+    int i_ref_idc   = (val0 >> 5) & 0x3;
+    int i_nalu_type = (val0 >> 0) & 0x1f;
+    mmf_printf("\t NALU @0x%08"PRIx64": size=0x%08x, ref_idc=%d, nalu_type=%d\n",
+               pos, i_nalu_size, i_ref_idc, i_nalu_type);
+    
+    mmf_buf_data_skip(pdata, i_nalu_size);
+    if (mmf_buf_data_left(pdata) != 0) {
+        mmf_perror("error packed multi-nalu AVC tag");
+        pos = mmf_flv_data_pos_2_file_pos(pflv, mmf_buf_data_pos(pdata));
+        mmf_perror("\t @0x%08"PRIx64": 0x%lX byte data still left \n",
+                   pos, mmf_buf_data_left(pdata));
+        if (mmf_buf_data_left(pdata) > 4) {
+            mmf_perror("\t\t next 4-byte is 0x%08X\n", mmf_buf_showbe32(pdata));
+        }
+        MMF_PERRSTR_EXIT(MMF_ERR_UNMATCH);
+    }
+
+    return 0;
 }
 
 int mmf_flv_read_file_header(mmf_flv_ctx_t *pflv)
@@ -275,7 +329,8 @@ int mmf_flv_read_file_header(mmf_flv_ctx_t *pflv)
     
     mmf_buf_t _buf, *pbuf = &_buf;
     mmf_buf_attach(pbuf, sbuf, MMF_FLV_FILE_HEADER_SIZE);
-    int ret = mmf_flv_parse_file_header(pbuf, pflv);
+    mmf_data_t data = mmf_buf_2_data(pbuf);
+    int ret = mmf_flv_parse_file_header(&data, pflv);
     MMF_ERR_CHECK_EXIT(ret);
     
     pflv->i_byte_pos += MMF_FLV_FILE_HEADER_SIZE;
@@ -300,7 +355,9 @@ int mmf_flv_read_tag_size(mmf_flv_ctx_t *pflv)
     int i_pre_tag_size = (int)mmf_showbe32(sbuf);
     if (i_pre_tag_size != pflv->tag.i_tag_size) {
         mmf_perror("pre tag size (%d) not match %d + %d (data size)\n",
-                   i_pre_tag_size, MMF_FLV_TAG_HEADER_SIZE, pflv->tag.i_data_size);
+                   i_pre_tag_size,
+                   MMF_FLV_TAG_HEADER_SIZE,
+                   pflv->tag.i_data_size);
         MMF_PERRSTR_EXIT(MMF_ERR_UNMATCH);
     }
     
@@ -324,9 +381,10 @@ int mmf_flv_read_tag_header(mmf_flv_ctx_t *pflv)
     
     mmf_buf_t _buf, *pbuf = &_buf;
     mmf_buf_attach(pbuf, sbuf, MMF_FLV_TAG_HEADER_SIZE);
+    mmf_data_t data = mmf_buf_2_data(pbuf);
     
     mmf_flv_tag_t *ptag = &pflv->tag;
-    mmf_flv_parse_tag_header(pbuf, ptag);
+    mmf_flv_parse_tag_header(&data, ptag);
     
     ptag->i_tag_idx = pflv->i_tag_idx;
     ptag->i_tag_pos = pflv->i_byte_pos;
@@ -338,8 +396,13 @@ int mmf_flv_read_tag_header(mmf_flv_ctx_t *pflv)
     return 0;
 }
 
-int mmf_flv_read_tag_data(mmf_flv_ctx_t *pflv,
-                          mmf_buf_t     *pbuf)
+int64_t mmf_flv_data_pos_2_file_pos(mmf_flv_ctx_t *pflv, int pos)
+{
+    mmf_flv_tag_t *ptag = &pflv->tag;
+    return ptag->i_tag_pos + MMF_FLV_TAG_HEADER_SIZE + pos;
+}
+
+int mmf_flv_read_tag_data(mmf_flv_ctx_t *pflv, mmf_buf_t *pbuf)
 {
     mmf_flv_tag_t *ptag = &pflv->tag;
     int ret = mmf_buf_enlarge(pbuf, ptag->i_tag_size, 0);
@@ -351,6 +414,7 @@ int mmf_flv_read_tag_data(mmf_flv_ctx_t *pflv,
         mmf_perror("Can't read enough byte for tag payload\n");
         return MMF_ERR_NOT_ENOUGH_DATA;
     }
+    pbuf->pos = ptag->i_data_size;
     pflv->i_byte_pos += ptag->i_data_size;
         
     return 0;
@@ -495,7 +559,8 @@ int flv_parse(int argc, char **argv)
         MMF_ERR_CHECK_JUMP(ret, flv_parse_err);
         
         if (pflv->tag.i_tag_idx >= cfg.frame_range[0]) {
-            int ret2 = mmf_flv_parse_tag_data(pflv, pbuf);
+            mmf_data_t data = mmf_buf_2_data(pbuf);
+            int ret2 = mmf_flv_parse_tag_data(pflv, &data);
             MMF_ERR_CHECK_JUMP(ret2, flv_parse_err);
         }
         
