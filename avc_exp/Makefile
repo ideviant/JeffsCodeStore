@@ -7,7 +7,7 @@ CFLAGS = -c -O3 -std=c99
 LIBS = -lm
 
 TMPDIR = mk.tmp
-BINSRCS = avc_exp.c cabac.c idct4_dyn.c
+BINSRCS = avc_exp.c h264_cabac.c h264_dct4_dyn.c mpeg2_motion_decode.c
 BINOBJS = $(BINSRCS:%.c=$(TMPDIR)/%.o)
 OUTBIN = avcexp
 

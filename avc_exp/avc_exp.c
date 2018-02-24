@@ -19,6 +19,11 @@
 #include "avc_exp.h"
 
 
+int cabac_test(int argc, char **argv);
+int idct4_dyn(int argc, char **argv);
+int fcode_decode(int argc, char** argv);
+
+
 int main(int argc, char **argv)
 {
     int i=0, j = 0;
@@ -34,6 +39,7 @@ int main(int argc, char **argv)
         {"cabac",     cabac_test,       "ff_h264_init_cabac_states()"},
         {"idct4",     idct4_dyn,        
          "show dynamic range (max value) in each step of the h264 4x4-DCT"},
+        {"fcode",     fcode_decode,     "mpeg2_motion_decode_test"},
     };
 
     xlog_init(SLOG_PRINT);
