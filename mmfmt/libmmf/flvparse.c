@@ -305,7 +305,7 @@ int mmf_flv_parse_avc_nalu(mmf_flv_ctx_t *pflv, mmf_data_t *pdata)
     
     mmf_buf_data_skip(pdata, i_nalu_size);
     if (mmf_buf_data_left(pdata) != 0) {
-        mmf_perror("\t error packed multi-nalu AVC tag");
+        mmf_perror("\t error packed multi-nalu AVC tag\n");
         pos = mmf_flv_data_pos_2_file_pos(pflv, mmf_buf_data_pos(pdata));
         mmf_perror("\t @0x%08"PRIx64": 0x%"PRIx64" byte data still left \n",
                    pos, mmf_buf_data_left(pdata));
@@ -478,6 +478,9 @@ int flvparse_arg_parse(flvparse_opt_t *cfg, int argc, char *argv[])
             i = arg_parse_int(i, argc, argv, &cfg->frame_range[0]);
         } else if (0==strcmp(arg, "f-range")) {
             i = arg_parse_range(i, argc, argv, cfg->frame_range);
+        } else {
+            xerr("unknown option `-%s`\n", arg);
+            return -(--i);
         }
     }
     
