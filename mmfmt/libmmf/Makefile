@@ -8,7 +8,7 @@ CFLAGS = -c -O2
 LIBS = -lm
 
 TMPDIR = mk.tmp
-LIBMMFSRCS = flvdef.c flvparse.c
+LIBMMFSRCS = mmfutils.c flvparse.c
 LIBMMFOBJS = $(LIBMMFSRCS:%.c=$(TMPDIR)/%.o)
 LIBMMF = libmmf.a
 

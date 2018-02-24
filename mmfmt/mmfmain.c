@@ -15,7 +15,8 @@
 *****************************************************************************/
 
 #include <stdio.h>
-#include "flvdef.h"
+#include <string.h>
+#include "sim_opt.h"
 #include "flvparse.h"
 
 int main(int argc, char **argv)
