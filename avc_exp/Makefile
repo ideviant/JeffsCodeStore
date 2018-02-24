@@ -3,11 +3,11 @@ INCLUDES = $(LIBSIMDIRS)
 LIBSIM = $(LIBSIMDIRS)/libsim.a
 
 CC = gcc
-CFLAGS = -c -O3
+CFLAGS = -c -O3 -std=c99
 LIBS = -lm
 
 TMPDIR = mk.tmp
-BINSRCS = avc_exp.c cabac.c 
+BINSRCS = avc_exp.c cabac.c idct4_dyn.c
 BINOBJS = $(BINSRCS:%.c=$(TMPDIR)/%.o)
 OUTBIN = avcexp
 

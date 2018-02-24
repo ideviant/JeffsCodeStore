@@ -31,7 +31,9 @@ int main(int argc, char **argv)
     } test_module_t;
     
     const static test_module_t sub_main[] = {
-        {"cabac",     cabac_test,    "yuv fmt convertor"},
+        {"cabac",     cabac_test,       "ff_h264_init_cabac_states()"},
+        {"idct4",     idct4_dyn,        
+         "show dynamic range (max value) in each step of the h264 4x4-DCT"},
     };
 
     xlog_init(SLOG_PRINT);

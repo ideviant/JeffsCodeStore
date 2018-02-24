@@ -18,6 +18,6 @@
 #define __AVC_EXP_H__
 
 int cabac_test(int argc, char **argv);
-
+int idct4_dyn(int argc, char **argv);
 
 #endif  //__AVC_EXP_H__
