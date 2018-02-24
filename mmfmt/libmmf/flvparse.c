@@ -114,10 +114,10 @@ const char *mmf_itoa_avc_pkt_type(int val) {
 
 void mmf_flv_print_tag_header(mmf_flv_tag_t *ptag)
 {
-    mmf_printf("tag#%d: <%s>, pos=0x%08"PRIx64", size=0x%08X, pts=%"PRId64"\n",
-               ptag->i_tag_idx, mmf_itoa_tag_type(ptag->i_tag_type),
-               ptag->i_tag_pos, ptag->i_tag_size,
-               ptag->i_tag_pts);
+    mmf_printf("tag#%d: @0x%08"PRIx64", <%s>, data_size=0x%08X, pts=%"PRId64"\n",
+               ptag->i_tag_idx, ptag->i_tag_pos,
+               mmf_itoa_tag_type(ptag->i_tag_type),
+               ptag->i_data_size, ptag->i_tag_pts);
 }
 
 void mmf_flv_print_aud_tag_header(mmf_aud_tag_t *paud)
@@ -276,37 +276,45 @@ int mmf_flv_parse_tag_data(mmf_flv_ctx_t *pflv, mmf_data_t *pdata)
     return ret;
 }
 
+/**
+ * One or more AVC NALUs (Full frames are required):
+ *      nalu_size + nalu_data + ... + nalu_size + nalu_data
+ */
 int mmf_flv_parse_avc_nalu(mmf_flv_ctx_t *pflv, mmf_data_t *pdata)
 {
-    if (mmf_buf_data_left(pdata) < 5) {
-        mmf_perror("sizeof(AVC DATA) < 5\n");
-        return MMF_ERR_NOT_ENOUGH_DATA;
+    while(mmf_buf_data_left(pdata) > 4)
+    {
+        if (mmf_buf_data_left(pdata) < 5) {
+            mmf_perror("sizeof(AVC DATA) < 5\n");
+            return MMF_ERR_NOT_ENOUGH_DATA;
+        }
+
+        int64_t pos = mmf_flv_data_pos_2_file_pos(pflv, mmf_buf_data_pos(pdata));
+        uint32_t i_nalu_size = mmf_buf_getbe32(pdata);
+
+        if (i_nalu_size > mmf_buf_data_left(pdata)) {
+            mmf_perror("\t @0x%08"PRIx64": nalu_size=0x%08x exceed data_size=0x%08"PRIx64"\n",
+                       pos, i_nalu_size, mmf_buf_data_left(pdata));
+            return MMF_ERR_OUT_OF_RANGE;
+        }
+
+        if (i_nalu_size < 1) {
+            mmf_perror("nalu_size < 1\n");
+            return MMF_ERR_NOT_ENOUGH_DATA;
+        }
+
+        uint32_t val0 = mmf_buf_showbe8(pdata);
+        int i_ref_idc   = (val0 >> 5) & 0x3;
+        int i_nalu_type = (val0 >> 0) & 0x1f;
+        mmf_printf("\t NALU @0x%08"PRIx64": size=0x%08x, ref_idc=%d, nalu_type=%d\n",
+                   pos, i_nalu_size, i_ref_idc, i_nalu_type);
+
+        mmf_buf_data_skip(pdata, i_nalu_size);
     }
 
-    int64_t pos = mmf_flv_data_pos_2_file_pos(pflv, mmf_buf_data_pos(pdata));
-    uint32_t i_nalu_size = mmf_buf_getbe32(pdata);
-
-    if (i_nalu_size > mmf_buf_data_left(pdata)) {
-        mmf_perror("\t @0x%08"PRIx64": nalu_size=0x%08x exceed data_size=0x%08"PRIx64"\n",
-                   pos, i_nalu_size, mmf_buf_data_left(pdata));
-        return MMF_ERR_OUT_OF_RANGE;
-    }
-
-    if (mmf_buf_data_left(pdata) < 1) {
-        mmf_perror("nalu_size < 4\n");
-        return MMF_ERR_NOT_ENOUGH_DATA;
-    }
-
-    uint32_t val0 = mmf_buf_showbe8(pdata);
-    int i_ref_idc   = (val0 >> 5) & 0x3;
-    int i_nalu_type = (val0 >> 0) & 0x1f;
-    mmf_printf("\t NALU @0x%08"PRIx64": size=0x%08x, ref_idc=%d, nalu_type=%d\n",
-               pos, i_nalu_size, i_ref_idc, i_nalu_type);
-    
-    mmf_buf_data_skip(pdata, i_nalu_size);
     if (mmf_buf_data_left(pdata) != 0) {
         mmf_perror("\t error packed multi-nalu AVC tag\n");
-        pos = mmf_flv_data_pos_2_file_pos(pflv, mmf_buf_data_pos(pdata));
+        int64_t pos = mmf_flv_data_pos_2_file_pos(pflv, mmf_buf_data_pos(pdata));
         mmf_perror("\t @0x%08"PRIx64": 0x%"PRIx64" byte data still left \n",
                    pos, mmf_buf_data_left(pdata));
         if (mmf_buf_data_left(pdata) > 4) {
