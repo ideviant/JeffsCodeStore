@@ -58,6 +58,31 @@ uint64_t mmf_showbe64(uint8_t *p)
     return ((uint64_t)val1 << 32) | val2;
 }
 
+uint32_t mmf_buf_showbe8 (mmf_buf_t *pbuf)
+{
+    return pbuf->base[pbuf->pos];
+}
+
+uint32_t mmf_buf_showbe16(mmf_buf_t *pbuf)
+{
+    return mmf_showbe16(pbuf->base + pbuf->pos);
+}
+
+uint32_t mmf_buf_showbe24(mmf_buf_t *pbuf)
+{
+    return mmf_showbe24(pbuf->base + pbuf->pos);
+}
+
+uint32_t mmf_buf_showbe32(mmf_buf_t *pbuf)
+{
+    return mmf_showbe32(pbuf->base + pbuf->pos);
+}
+
+uint64_t mmf_buf_showbe64(mmf_buf_t *pbuf)
+{
+    return mmf_showbe64(pbuf->base + pbuf->pos);
+}
+
 uint32_t mmf_buf_getbe8 (mmf_buf_t *pbuf)
 {
     return pbuf->base[pbuf->pos++];
@@ -161,15 +186,6 @@ int mmf_buf_enlarge(mmf_buf_t *pbuf, size_t sz, size_t memcpy_size)
     return 0;
 }
 
-int mmf_buf_data_enlarge(mmf_buf_t *pbuf, size_t data_pos, size_t data_size)
-{
-    if (data_pos > pbuf->size) {
-        MMF_PERRSTR_EXIT(MMF_ERR_OUT_OF_RANGE);
-    }
-    
-    return mmf_buf_enlarge(pbuf, data_pos + data_size, data_size);
-}
-
 void mmf_buf_free(mmf_buf_t *pbuf)
 {
     void *p = pbuf->base;
@@ -212,7 +228,16 @@ void mmf_buf_freep(mmf_buf_t **ppbuf)
     *ppbuf = 0;
 }
 
-int mmf_buf_part_ref(mmf_buf_t *pdata, mmf_buf_t *pbuf,
+int mmf_buf_data_enlarge(mmf_buf_t *pbuf, size_t data_pos, size_t data_size)
+{
+    if (data_pos > pbuf->size) {
+        MMF_PERRSTR_EXIT(MMF_ERR_OUT_OF_RANGE);
+    }
+
+    return mmf_buf_enlarge(pbuf, data_pos + data_size, data_size);
+}
+
+int mmf_buf_data_ref(mmf_data_t *pdata, mmf_buf_t *pbuf,
                      size_t data_pos, size_t data_size)
 {
     if (data_pos > pbuf->size) {
@@ -232,13 +257,40 @@ int mmf_buf_part_ref(mmf_buf_t *pdata, mmf_buf_t *pbuf,
     return 0;
 }
 
+int mmf_buf_data_ref_all(mmf_data_t *pdata, mmf_buf_t *pbuf)
+{
+    return mmf_buf_data_ref(pdata, pbuf, 0, pbuf->pos);
+}
+
+mmf_data_t mmf_buf_2_data(mmf_buf_t *pbuf)
+{
+    mmf_data_t data;
+    mmf_buf_data_ref(&data, pbuf, 0, pbuf->pos);
+    return data;
+}
+
+size_t mmf_buf_data_pos(mmf_data_t *pdata)
+{
+    return pdata->pos;
+}
+
+size_t mmf_buf_data_left(mmf_data_t *pdata)
+{
+    return pdata->size - pdata->pos;
+}
+
+size_t mmf_buf_data_skip(mmf_data_t *pdata, size_t n)
+{
+    return (pdata->pos += n);
+}
+
 /*
 int mmf_pkt_data_layout(mmf_pkt_t *ppkt, size_t data_pos, size_t data_size)
 {
     mmf_buf_t *pbuf = &ppkt->buf;
     mmf_buf_t *pdata = &ppkt->data;
     
-    return mmf_buf_part_ref(pdata, pbuf, data_pos, data_size);
+    return mmf_buf_data_ref(pdata, pbuf, data_pos, data_size);
 }
 
 intptr_t mmf_pkt_data_pos(mmf_pkt_t *ppkt)

@@ -93,28 +93,40 @@ typedef struct _mmf_buf {
     size_t      size;
     size_t      pos;
 } mmf_buf_t;
-
-typedef struct _mmf_pkt {
-    mmf_buf_t   buf;        ///< buf used to hold data
-    mmf_buf_t   data;       ///< data reside in buf
-} mmf_pkt_t;
+    
+void    mmf_buf_reset(mmf_buf_t *pbuf);
+size_t  mmf_buf_space(mmf_buf_t *pbuf);
+size_t  mmf_buf_full (mmf_buf_t *pbuf);
 
 void    mmf_buf_attach(mmf_buf_t *pbuf, void *p, size_t sz);
 void    mmf_buf_detach(mmf_buf_t *pbuf);
-void    mmf_buf_reset(mmf_buf_t *pbuf);
-size_t  mmf_buf_space(mmf_buf_t *pbuf);
-size_t  mmf_buf_full(mmf_buf_t *pbuf);
 int     mmf_buf_malloc(mmf_buf_t *pbuf, size_t sz);
 int     mmf_buf_realloc(mmf_buf_t *pbuf, size_t sz);
 int     mmf_buf_enlarge(mmf_buf_t *pbuf, size_t sz, size_t memcpy_size);
-int     mmf_buf_data_enlarge(mmf_buf_t *pbuf, size_t data_pos, size_t data_size);
 void    mmf_buf_free(mmf_buf_t *pbuf);
-mmf_buf_t* mmf_buf_create(size_t sz);
+mmf_buf_t*  mmf_buf_create(size_t sz);
 void    mmf_buf_freep(mmf_buf_t **ppbuf);
-int     mmf_buf_part_ref(mmf_buf_t *pdst, mmf_buf_t *psrc,
+
+
+typedef mmf_buf_t mmf_data_t;
+int     mmf_buf_data_enlarge(mmf_data_t *pbuf, size_t data_pos,
+                             size_t data_size);
+int     mmf_buf_data_ref(mmf_data_t *pdata, mmf_buf_t *pbuf,
                          size_t data_pos, size_t data_size);
+int     mmf_buf_data_ref_all(mmf_data_t *pdata, mmf_buf_t *pbuf);
+mmf_data_t  mmf_buf_2_data(mmf_buf_t *pbuf);
+size_t  mmf_buf_data_pos (mmf_data_t *pdata);
+size_t  mmf_buf_data_left(mmf_data_t *pdata);
+size_t  mmf_buf_data_skip(mmf_data_t *pdata, size_t n);
+
+
 
 /*
+typedef struct _mmf_pkt {
+    mmf_buf_t   buf;        ///< buf used to hold data
+    mmf_data_t  data;       ///< data reside in buf
+} mmf_pkt_t;
+ 
 int     mmf_pkt_data_layout(mmf_pkt_t *ppkt, size_t data_pos, size_t data_size);
 intptr_t mmf_pkt_data_pos(mmf_pkt_t *ppkt);
 #DEFINE  MMF_PKT_IS_VALID_POS(pos) ((pos)>=0)
@@ -130,6 +142,12 @@ uint32_t mmf_showbe24(uint8_t *p);
 uint32_t mmf_showbe32(uint8_t *p);
 uint64_t mmf_showbe64(uint8_t *p);
 
+uint32_t mmf_buf_showbe8 (mmf_buf_t *pbuf);
+uint32_t mmf_buf_showbe16(mmf_buf_t *pbuf);
+uint32_t mmf_buf_showbe24(mmf_buf_t *pbuf);
+uint32_t mmf_buf_showbe32(mmf_buf_t *pbuf);
+uint64_t mmf_buf_showbe64(mmf_buf_t *pbuf);
+    
 uint32_t mmf_buf_getbe8 (mmf_buf_t *pbuf);
 uint32_t mmf_buf_getbe16(mmf_buf_t *pbuf);
 uint32_t mmf_buf_getbe24(mmf_buf_t *pbuf);
