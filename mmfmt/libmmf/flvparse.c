@@ -295,7 +295,11 @@ int mmf_flv_parse_tag_data(mmf_flv_ctx_t *pflv, mmf_data_t *pdata)
 
 /**
  * One or more AVC NALUs (Full frames are required):
- *      nalu_size + nalu_data + ... + nalu_size + nalu_data
+ *      nalu_size + [nalu_data] + ... + nalu_size + [nalu_data]
+ *
+ * TODO: Detect error like this
+ *      nalu_size + [nalud_data + 0x000001 + nalu_size + 0x000001 + ...]
+ * In which nalu_size is acctually the entire frame size
  */
 int mmf_flv_parse_avc_nalu(mmf_flv_ctx_t *pflv, mmf_data_t *pdata)
 {
