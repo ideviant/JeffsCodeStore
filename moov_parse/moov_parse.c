@@ -1,5 +1,10 @@
 /*
  * moov_parse.c by <jianfneg15@staff.weibo.cn>
+ *
+ * Caution: 
+ *  This file currently implemented according to ISO MP4 Specification
+ *  Mismatch to QuickTime File Format Specification may happen:
+ *  <https://developer.apple.com/library/content/documentation/QuickTime/QTFF/QTFFPreface/qtffPreface.html>
  */
 
 #include <stdio.h>
@@ -9,6 +14,7 @@
 #include <math.h>
 #include "box_reader.h"
 #include "moov_parse.h"
+
 
 // not thread save
 const char* get4cc(uint32_t v);
@@ -772,8 +778,11 @@ int parse_ctts(raw_data_t *raw, box_t *box1, moov_ctx_t *moov)
         uint32_t sample_count = BE_32(atom_bytes + i*8 + 0); 
         uint32_t sample_delta = BE_32(atom_bytes + i*8 + 4);
 
+        // in quicktime, it can be negative
+        int32_t sample_offset = (int32_t) sample_delta;
+
         for (int j=0; j<sample_count && k<trak->framecount; j++) {
-            trak->pts_array[k++] += sample_delta * 1000.0 / trak->mdia.mdhd.timescale;
+            trak->pts_array[k++] += sample_offset * 1000.0 / trak->mdia.mdhd.timescale;
         }
     }
 
