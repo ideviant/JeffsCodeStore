@@ -107,6 +107,26 @@ typedef enum {
     MMF_FLV_AMF_LONGSTR = 12,
 } MMF_FLV_AMF_e;
 
+typedef enum {
+    MMF_AVC_NALU_UNSPECIFIED = 0,
+    MMF_AVC_NALU_NON_IDR = 1,
+    MMF_AVC_NALU_PART_A = 2,
+    MMF_AVC_NALU_PART_B = 3,
+    MMF_AVC_NALU_PART_C = 4,
+    MMF_AVC_NALU_IDR = 5,
+    MMF_AVC_NALU_SEI = 6,
+    MMF_AVC_NALU_SPS = 7,
+    MMF_AVC_NALU_PPS = 8,
+    MMF_AVC_NALU_AUD = 9,
+    MMF_AVC_NALU_END_SEQ = 10,
+    MMF_AVC_NALU_END_STREAM = 11,
+    MMF_AVC_NALU_FILTER = 12,
+    MMF_AVC_NALU_SPS_EXT = 13,
+    /* reserved 14..18 */
+    MMF_AVC_NALU_AUX = 19,
+    /* reserved 20..23 */
+    /* unspecified 24..31 */
+} MMF_AVC_NALU_TYPE_e;
 
 typedef struct _mmf_flv_tag {
     int         i_tag_type;         // MMF_FLV_TAG_TYPE_e

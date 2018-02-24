@@ -112,6 +112,23 @@ const char *mmf_itoa_avc_pkt_type(int val) {
     return mmf_flv_itoa(val);
 }
 
+const char *mmf_itoa_avc_nalu_type(int val) {
+    switch (val) {
+        case MMF_AVC_NALU_NON_IDR: return "non-IDR";
+        case MMF_AVC_NALU_PART_A: return "partA";
+        case MMF_AVC_NALU_PART_B: return "partB";
+        case MMF_AVC_NALU_PART_C: return "partc";
+        case MMF_AVC_NALU_IDR: return "IDR";
+        case MMF_AVC_NALU_SEI: return "SEI";
+        case MMF_AVC_NALU_SPS: return "SPS";
+        case MMF_AVC_NALU_PPS: return "PPS";
+        case MMF_AVC_NALU_AUD: return "AUD";
+        default: break;
+    }
+    
+    return mmf_flv_itoa(val);
+}
+
 void mmf_flv_print_tag_header(mmf_flv_tag_t *ptag)
 {
     mmf_printf("tag#%d: @0x%08"PRIx64", <%s>, data_size=0x%08X, pts=%"PRId64"\n",
@@ -306,8 +323,9 @@ int mmf_flv_parse_avc_nalu(mmf_flv_ctx_t *pflv, mmf_data_t *pdata)
         uint32_t val0 = mmf_buf_showbe8(pdata);
         int i_ref_idc   = (val0 >> 5) & 0x3;
         int i_nalu_type = (val0 >> 0) & 0x1f;
-        mmf_printf("\t NALU @0x%08"PRIx64": size=0x%08x, ref_idc=%d, nalu_type=%d\n",
-                   pos, i_nalu_size, i_ref_idc, i_nalu_type);
+        mmf_printf("\t NALU @0x%08"PRIx64": size=0x%06x, ref_idc=%d, <%s>\n",
+                   pos, i_nalu_size, i_ref_idc,
+                   mmf_itoa_avc_nalu_type(i_nalu_type));
 
         mmf_buf_data_skip(pdata, i_nalu_size);
     }
