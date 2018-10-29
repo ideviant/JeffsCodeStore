@@ -22,7 +22,7 @@ extern "C" {
 #endif /* __cplusplus */
 
 
-#define _log_level    4
+#define _log_level    7
 #define _log_debug    if (6<=_log_level) printf
 #define _log_info     if (5<=_log_level) printf
 #define _log_warning  if (4<=_log_level) printf

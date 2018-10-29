@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
 *****************************************************************************/
- 
+
 /*
  * Caution: 
  *  This file currently implemented according to ISO MP4 Specification
@@ -216,7 +216,7 @@ int main(int argc, char *argv[])
     int ret = ERR_NONE;
 
     if (argc != 2) {
-        _log_error("Usage: qt-faststart <infile.mov>\n");
+        _log_error("Usage: moov_parse <infile.mov>\n");
         return 0;
     }
 
