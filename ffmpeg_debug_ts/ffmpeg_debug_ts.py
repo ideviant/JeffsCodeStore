@@ -198,8 +198,8 @@ def opt_check(opt):
         sys.exit("Error: No input/url or log specified.")
     if not opt.log:
         if opt.input:
-            opt.log = opt.input + ".ffmpeg.log"
-        else:
+	    opt.log = './log/' + opt.input.split('/')[-1:][0] + ".ffmpeg.log"
+	else:
             opt.log = "timestamp.log"
     if os.path.isfile(opt.log):
         print "Warning: " + opt.log + " already exist."
